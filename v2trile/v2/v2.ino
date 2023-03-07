@@ -1,12 +1,14 @@
 
-#include <Firebase_ESP_Client.h>
+
+#include <FirebaseESP8266.h>
+#include <FirebaseFS.h>
+
+
 #include <ESP8266WiFi.h>
 
 #include <string.h>
 
-#include "addons/RTDBHelper.h"
 #include "addons/TokenHelper.h"
-
 
 #define Wifi_SSID "Protosem"
 #define Wifi_PWD "proto123"
@@ -21,6 +23,7 @@ FirebaseAuth auth;
 FirebaseConfig config;
 String uid;
 using namespace std;
+
 
 void networkInit(){
   WiFi.disconnect();
@@ -40,9 +43,6 @@ void networkInit(){
 void FireBaseSetup(){
   Serial.println("[+]Firebase setup init...");
   config.api_key=API_KEY;
-
- 
-
   auth.user.email=USER_EMAIL;
   auth.user.password=USER_PASSWORD;
   Firebase.reconnectWiFi(true);
@@ -62,33 +62,23 @@ void FireBaseSetup(){
   Serial.println("[+]Firebase setup finish...");
 }
 
-
-void FireBasePushData(int id,bool status){
-  Serial.println("[+]Firebase push data init...");
-  if(WiFi.status()==WL_CONNECTED && Firebase.ready()){
-    Serial.print("[+]Test print");
-    String documentPath;
-    sprintf(&documentPath[0],"logs/%d/%s",id,AccessPoint);
-    Serial.println(documentPath);
-  }
-  Serial.println("[+]Firebase push data finish...");
-}
-
-void FireBaseGetData(){
+void FirestorePull(){
   Serial.println("[+]Pull data init...");
+
   String path="access/";
-  String ids;
-  if(Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", path.c_str())){
-    Serial.println("[+]Pull data process...");
-    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
-    // FirebaseJson json;
-    // json.setJsonData(fbdo.payload());         
-  }
-  else{
-    Serial.println("[+]Pull data process into else block...");
+  Firebase.get(fbdo, path.c_str());  
+    
+  if(fbdo.dataAvailable()){
+
+      Serial.print("[+]Data pull success...");
+    
+  }else {
+    
     Serial.println(fbdo.errorReason());
-  } 
+    Serial.println(fbdo.jsonString());
+  }
   Serial.println("[+]Pull data end...");
+
 }
 
 void setup() {
@@ -96,14 +86,11 @@ void setup() {
   Serial.begin(115200);
   networkInit();
   FireBaseSetup();
-  // FireBasePushData(1,false);
-  FireBaseGetData();
+  FirestorePull();
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-   if (Firebase.isTokenExpired()){
-    Firebase.refreshToken(&config);
-    Serial.println("Refresh token");
-  }
+
 }
