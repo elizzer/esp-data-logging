@@ -1,17 +1,17 @@
 
 
+
 #include <FirebaseESP8266.h>
 #include <FirebaseFS.h>
-
-
 #include <ESP8266WiFi.h>
+#include <Firebase_ESP_Client.h>
 
 #include <string.h>
 
 #include "addons/TokenHelper.h"
 
-#define Wifi_SSID "Protosem"
-#define Wifi_PWD "proto123"
+#define Wifi_SSID "SHADOW 0026"
+#define Wifi_PWD "shadow11"
 #define AccessPoint "DOOR"
 #define API_KEY "AIzaSyBerVodscP609gn0LyEDrIwwnnqhIzKQ7I"
 #define FIREBASE_PROJECT_ID "esp-log-cb372"
@@ -73,6 +73,7 @@ void FirestorePull(){
       Serial.print("[+]Data pull success...");
     
   }else {
+    Serial.println("[+]Pull data process into else block...");
     
     Serial.println(fbdo.errorReason());
     Serial.println(fbdo.jsonString());
