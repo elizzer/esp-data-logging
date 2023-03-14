@@ -1,7 +1,7 @@
 
 #include <Firebase_ESP_Client.h>
 #include <ESP8266WiFi.h>
-
+#include <FS.h>
 #include <string.h>
 
 #include "addons/RTDBHelper.h"
@@ -16,6 +16,7 @@
 #define USER_EMAIL "logger@forge.com"
 #define USER_PASSWORD "logger@forge"
 #define COUNT 9
+#define FILE "/access"
 
 FirebaseData fbdo;
 FirebaseAuth auth;
@@ -24,7 +25,7 @@ FirebaseJsonArray AccessData;
 String uid;
 using namespace std;
 
-
+File f;
 
 class person{
 public:
@@ -62,10 +63,12 @@ public:
 person *accessData;
 
 bool haveAccess(int id,String access=AccessPoint){
+  access.toLowerCase();
   for(int i=0;i<COUNT;i++){
     int TempId=accessData[i].id;
     if(TempId==id){
       if(accessData[i].point==access){
+        accessData[i].printIt();
         return accessData[i].access;
       }
     }
@@ -74,7 +77,7 @@ bool haveAccess(int id,String access=AccessPoint){
 }
 
 void networkInit(){
-  WiFi.disconnect();
+     WiFi.disconnect();
   WiFi.mode(WIFI_STA);
   WiFi.begin(Wifi_SSID,Wifi_PWD);
   while (WiFi.status() != WL_CONNECTED) {
@@ -127,12 +130,8 @@ void LoadData(){
 
     FirebaseJsonData r;  
     AccessData.get(r,"documents/");  
-    FirebaseJsonArray tempArray;
-    
+    FirebaseJsonArray tempArray; 
     r.getArray(tempArray);  
-   
- 
-
     int l= tempArray.size();  
     l=COUNT;
     
@@ -165,7 +164,7 @@ void LoadData(){
     person p1(name.to<String>(),id.to<String>(),access.to<String>(),point.to<String>());
  
     accessData[i]=p1;
-    p1.printIt();      
+    // p1.printIt();      
   }
 
   Serial.println("[+]load data finish...");
@@ -177,25 +176,67 @@ void FireBaseGetData(){
   String path="access/";
   if(Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", path.c_str())){
     Serial.println("[+]Pull data process...");
-    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    // Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    f = SPIFFS.open(FILE,"w");
+    if(!f){
+      Serial.println("[*]Unable to open the file...");
+    }else{
+      Serial.println("[+]File open success...");
+      f.print(fbdo.payload().c_str());
+      f.close();
+    }
     AccessData.setJsonArrayData(fbdo.payload().c_str()); 
   }
   else{
     Serial.println("[+]Pull data process into else block...");
     Serial.println(fbdo.errorReason());
+     
+    f = SPIFFS.open(FILE,"r");
+    if(!f){
+      Serial.println("[*]Unable to open the file...");
+    }else{
+      Serial.println("[+]File open success..."); 
+      AccessData.setJsonArrayData(f.readString()); 
+      f.close();
+    }
+
   } 
   Serial.println("[+]Pull data end...");
+}
+
+void FileInit(){
+    if(SPIFFS.begin()){
+    Serial.println("[+] SPIFFFS init success..");
+  }else{
+    Serial.println("[*]SPIFFS init error");
+  }
+
+  if(SPIFFS.format()){
+    Serial.println("[+]SPIFFS file format success...");
+  }else{
+    Serial.println("[*]SPIFFS file format fail...");
+  }
+
+
+}
+
+void PrintData(){
+  for(int i=0;i<COUNT;i++){
+    accessData[i].printIt(); 
+  }
 }
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
+  FileInit();
   networkInit();
   FireBaseSetup();
   // FireBasePushData(1,false);
   FireBaseGetData();
+
   LoadData();
-  // PrintData();
+  PrintData();
   Serial.println(haveAccess(23));
   Serial.println(haveAccess(100));
 }
